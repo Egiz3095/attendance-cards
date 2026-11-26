@@ -287,6 +287,10 @@ td.nt.off{color:var(--red);font-weight:600;font-size:8.4pt}
 tr.ab td.nt.st{color:var(--red);font-weight:700;font-size:8.6pt}
 tr.nr td.nt.st{color:#9aa4b0;font-size:8.2pt}
 
+.page tbody td.dt{text-align:center!important;padding:0 4px!important;font-weight:600;color:var(--navy);letter-spacing:.2px;border-left:1.5px solid #b3bfcd!important}
+.page thead th:first-child{border-left:1.5px solid #b3bfcd!important}
+tr.fr td.dt{color:var(--red)}
+
 @page{size:A4;margin:0}
 @page land{size:A4 landscape;margin:0}
 @media print{
@@ -563,7 +567,7 @@ function cardHTML(data, item, p, idx){
   const today = new Date();
   const no = `${co.key.toUpperCase().slice(0,3)}-${String(p.y).slice(2)}${String(p.m+1).padStart(2,'0')}-${String(idx+1).padStart(3,'0')}`;
   const rows = days.map(x=>{
-    const d=x.d, dc=`<td class="dt"><span class="dn">${d.getDate()}</span> ${MONTHS[d.getMonth()]}</td>`;
+    const d=x.d, dc=`<td class="dt"><bdi dir="ltr">${String(d.getDate()).padStart(2,'0')}-${String(d.getMonth()+1).padStart(2,'0')}-${d.getFullYear()}</bdi></td>`;
     let note = x.r && x.r.note ? esc(x.r.note) : '';
     if(x.late) note = (note ? note+' · ' : '') + 'تأخير '+x.late+' د';
     if(x.type==='fri') return `<tr class="fr">${dc}<td class="dy"><span class="pill">الجمعة</span></td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td><td class="nt off">إجازة أسبوعية${note?' · '+note:''}</td></tr>`;
