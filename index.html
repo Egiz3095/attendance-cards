@@ -396,6 +396,8 @@ tr.fr td.dt{color:var(--red)}
     <h4>الدوام الرسمي</h4>
     <div class="hours"><div class="fld"><label for="ws">بداية الدوام</label><input id="ws" type="time" value="08:00"></div><div class="fld"><label for="we">نهاية الدوام</label><input id="we" type="time" value="16:00"></div></div>
     <p class="hint" style="margin-bottom:22px">ما زاد عن ساعات الدوام الرسمي يُحتسب إضافي، والحضور بعد بدايته يُكتب تأخير في ملاحظات الكرت.</p>
+    <h4>قواعد شركة زحل</h4>
+    <p class="hint" style="margin-bottom:22px">الدوام من 8:00 ص إلى 4:00 م. الإضافي يُحتسب بعد 4:00 م بالساعات الكاملة، ولا يُحتسب إلا إذا كُتب في الملاحظات «إضافي - إنتاج أكثر من 200 م». العمل يوم الجمعة يُحتسب يومًا ونصفًا. إعدادات الدوام أعلاه تخص باقي الجهات.</p>
     <h4>الجهات والشعارات</h4>
     <div id="coset"></div>
     <p class="hint">الشعارات الافتراضية في مجلد <code>logos</code> على GitHub. الشعار أو الاسم المرفوع هنا يُحفظ في هذا المتصفح فقط.</p>
@@ -531,28 +533,41 @@ function employeesIn(data, p){
 }
 
 /* ================= الحساب ================= */
-function workDay(){
+/* قواعد كل جهة. الجهة غير المذكورة تستخدم الدوام من الإعدادات والإضافي بالدقيقة */
+const RULES = {
+  zahal: {start:'08:00', end:'16:00', otNote:/أكثر\s*من\s*200/, otNoteTxt:'إضافي - إنتاج أكثر من 200 م', otRound:60, friFactor:1.5},
+};
+const ruleOf = co => (co && RULES[co.key]) || {};
+function workDay(co){
+  const R = ruleOf(co || (cur && cur.co));
   const t = v => { const [h,m]=v.split(':').map(Number); return h*60+m; };
-  const s=t($('#ws').value||'08:00'), e=t($('#we').value||'16:00');
+  const s=t(R.start || $('#ws').value || '08:00'), e=t(R.end || $('#we').value || '16:00');
   return {s, e, len: e>s ? e-s : e+1440-s};
 }
-function compute(emp, p){
-  const W = workDay(); const days=[]; const tot={period:0, work:0, att:0, ab:0, inc:0, fri:0, mins:0, ot:0, late:0};
+function compute(emp, p, co){
+  co = co || (cur && cur.co); const R = ruleOf(co), W = workDay(co);
+  const days=[]; const tot={period:0, work:0, att:0, ab:0, inc:0, fri:0, friWork:0, mins:0, ot:0, late:0, due:0};
   for(let d=new Date(p.start); d<=p.end; d.setDate(d.getDate()+1)){
     const dd=new Date(d), r=emp.byDay.get(dkey(dd)), fri=dd.getDay()===5;
-    const row={d:dd, fri, r, type:'', mins:null, ot:0, late:0};
+    const row={d:dd, fri, r, type:'', mins:null, ot:0, late:0, otSkip:0};
     tot.period++; if(!fri) tot.work++;
     const hasS = r && r.s!=null, hasE = r && r.e!=null;
     if(hasS && hasE){
       let m = r.e - r.s; if(m<=0) m+=1440;
-      row.type='ok'; row.mins=m; row.ot=Math.max(0, m - W.len); row.late=Math.max(0, r.s - W.s);
-      tot.att++; tot.mins+=m; tot.ot+=row.ot; tot.late+=row.late;
+      const endAbs = r.s + m;                       /* نهاية الدوام الفعلية بالدقائق */
+      let ot = Math.max(0, endAbs - W.e);           /* الإضافي يبدأ بعد نهاية الدوام الرسمي */
+      if(ot && R.otNote && !R.otNote.test(r.note || '')){ row.otSkip = ot; ot = 0; }
+      if(R.otRound) ot = Math.floor(ot / R.otRound) * R.otRound;
+      row.type='ok'; row.mins=m; row.ot=ot; row.late=Math.max(0, r.s - W.s);
+      tot.att++; tot.mins+=m; tot.ot+=ot; tot.late+=row.late;
+      if(fri){ tot.friWork++; row.friWork = true; }
     } else if(hasS || hasE){ row.type='inc'; tot.inc++; }
     else if(fri){ row.type='fri'; tot.fri++; }
     else if(r){ row.type='ab'; tot.ab++; }
     else row.type='nr';
     days.push(row);
   }
+  tot.due = (tot.att - tot.friWork) + tot.friWork * (R.friFactor || 1);
   return {days, tot};
 }
 
@@ -562,7 +577,7 @@ function logoHTML(cs, co){
   return `<div class="mark" data-fallback="${esc(co.short)}"><img src="logos/${co.key}.png" alt="" onerror="this.parentNode.textContent=this.parentNode.dataset.fallback" onload="this.parentNode.classList.add('img')"></div>`;
 }
 function cardHTML(data, item, p, idx){
-  const {co} = data, cs = coSettings(co), {info} = item, {days, tot} = compute(item.emp, p);
+  const {co} = data, cs = coSettings(co), {info} = item, {days, tot} = compute(item.emp, p, co), R = ruleOf(co);
   const n = days.length; const rh = Math.min(26, (22.2*31/n)).toFixed(1);
   const today = new Date();
   const no = `${co.key.toUpperCase().slice(0,3)}-${String(p.y).slice(2)}${String(p.m+1).padStart(2,'0')}-${String(idx+1).padStart(3,'0')}`;
@@ -570,6 +585,8 @@ function cardHTML(data, item, p, idx){
     const d=x.d, dc=`<td class="dt"><bdi dir="ltr">${String(d.getDate()).padStart(2,'0')}-${String(d.getMonth()+1).padStart(2,'0')}-${d.getFullYear()}</bdi></td>`;
     let note = x.r && x.r.note ? esc(x.r.note) : '';
     if(x.late) note = (note ? note+' · ' : '') + 'تأخير '+x.late+' د';
+    if(x.otSkip) note = (note ? note+' · ' : '') + 'إضافي غير معتمد';
+    if(x.friWork && ruleOf(co).friFactor) note = (note ? note+' · ' : '') + 'عمل يوم الجمعة = يوم ونصف';
     if(x.type==='fri') return `<tr class="fr">${dc}<td class="dy"><span class="pill">الجمعة</span></td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td><td class="nt off">إجازة أسبوعية${note?' · '+note:''}</td></tr>`;
     const dy = `<td class="dy">${DAYS[d.getDay()]}</td>`;
     if(x.type==='ok') return `<tr${x.fri?' class="fr"':''}>${dc}${dy}<td class="tin">${clock(x.r.s)}</td><td class="tout">${clock(x.r.e)}</td><td class="hrs">${hm(x.mins)}</td><td class="ot">${x.ot?hm(x.ot):''}</td><td class="nt">${note}</td></tr>`;
@@ -577,7 +594,7 @@ function cardHTML(data, item, p, idx){
     if(x.type==='ab') return `<tr class="ab">${dc}${dy}<td class="dash">—</td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td><td class="nt st">غياب${note?' · '+note:''}</td></tr>`;
     return `<tr class="nr">${dc}${dy}<td class="dash">—</td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td><td class="nt st">لا يوجد سجل</td></tr>`;
   }).join('');
-  const W=workDay();
+  const W=workDay(co);
   return `<section class="page" style="--rh:${rh}px">
   <div class="head">
     <div class="brand">${logoHTML(cs, co)}<div><h2>${esc(cs.name)}</h2><p>إدارة الموارد البشرية</p></div></div>
@@ -597,14 +614,14 @@ function cardHTML(data, item, p, idx){
     <tbody>${rows}</tbody>
     <tfoot><tr><td colspan="4" class="lbl">الإجمالي</td><td>${hm(tot.mins)}</td><td>${hm(tot.ot)}</td><td></td></tr></tfoot>
   </table></div>
-  <div class="sum">
+  <div class="sum" style="grid-template-columns:repeat(${R.friFactor?8:7},1fr)">
     <div><label>أيام الفترة</label><b>${tot.period}</b></div>
     <div><label>أيام العمل</label><b>${tot.work}</b></div>
     <div class="g"><label>أيام الحضور</label><b>${tot.att}</b></div>
     <div class="r"><label>أيام الغياب</label><b>${tot.ab}</b></div>
     <div class="a"><label>ناقص بيانات</label><b>${tot.inc}</b></div>
     <div><label>إجمالي الساعات</label><b>${hm(tot.mins)}</b></div>
-    <div class="n"><label>إجمالي الإضافي</label><b>${hm(tot.ot)}</b></div>
+    <div class="n"><label>إجمالي الإضافي</label><b>${hm(tot.ot)}</b></div>${R.friFactor?`<div class="g"><label>أيام مستحقة</label><b><bdi dir="ltr">${tot.due}</bdi></b></div>`:""}
   </div>
   <div class="sig">
     <div><div class="ln"></div><b>توقيع الموظف</b></div>
@@ -806,15 +823,15 @@ function printReport(){
   const p = curPeriod(), co = cur.co, cs = coSettings(co), vr = visibleRows();
   if(!vr.length) return toast('لا يوجد موظفون في التقرير');
   const per = 26, pages = [];
-  const T = vr.reduce((a,r) => { for(const k of ['att','ab','inc','fri','mins','ot','late']) a[k] += r.tot[k]; return a; }, {att:0, ab:0, inc:0, fri:0, mins:0, ot:0, late:0});
+  const T = vr.reduce((a,r) => { for(const k of ['att','ab','inc','fri','mins','ot','late','due']) a[k] += r.tot[k]; return a; }, {att:0, ab:0, inc:0, fri:0, mins:0, ot:0, late:0, due:0});
   for(let s = 0; s < vr.length; s += per){
     const chunk = vr.slice(s, s + per), last = s + per >= vr.length;
     pages.push(`<section class="rep">
       <div class="rep-h"><img src="${cs.logo || 'logos/' + co.key + '.png'}" alt="" onerror="this.remove()"><div class="g"><h1>ملخص دوام ${esc(cs.name)}</h1><p>شهر ${MONTHS[p.m]} ${p.y}، من ${fmtD(p.start)} إلى ${fmtD(p.end)} ${p.end.getFullYear()}</p></div>
       <div class="m">عدد الموظفين <b>${vr.length}</b><br>صفحة <b>${pages.length + 1}</b> من <b>${Math.ceil(vr.length / per)}</b></div></div>
-      <table><thead><tr><th>م</th><th>الاسم</th><th>رقم الهوية</th><th>المهنة</th><th>أيام العمل</th><th>حضور</th><th>غياب</th><th>ناقص</th><th>جمعة</th><th>الساعات</th><th>الإضافي</th><th>التأخير (د)</th><th>الحالة</th></tr></thead>
-      <tbody>${chunk.map((r,j) => `<tr><td>${s + j + 1}</td><td class="l">${esc(r.info.name)}</td><td>${esc(r.info.id) || '—'}</td><td>${esc(r.info.job) || '—'}</td><td>${r.tot.work}</td><td class="ok">${r.tot.att}</td><td class="${r.tot.ab ? 'ab' : ''}">${r.tot.ab}</td><td class="${r.tot.inc ? 'in' : ''}">${r.tot.inc}</td><td>${r.tot.fri}</td><td>${hm(r.tot.mins)}</td><td>${r.tot.ot ? hm(r.tot.ot) : '—'}</td><td>${r.tot.late || '—'}</td><td>${FLAG_TXT[r.flag]}</td></tr>`).join('')}</tbody>
-      ${last ? `<tfoot><tr><td colspan="5" class="l">الإجمالي</td><td>${T.att}</td><td>${T.ab}</td><td>${T.inc}</td><td>${T.fri}</td><td>${hm(T.mins)}</td><td>${hm(T.ot)}</td><td>${T.late}</td><td></td></tr></tfoot>` : ''}
+      <table><thead><tr><th>م</th><th>الاسم</th><th>رقم الهوية</th><th>المهنة</th><th>أيام العمل</th><th>حضور</th><th>غياب</th><th>ناقص</th><th>جمعة</th><th>الساعات</th><th>الإضافي</th><th>التأخير (د)</th><th>أيام مستحقة</th><th>الحالة</th></tr></thead>
+      <tbody>${chunk.map((r,j) => `<tr><td>${s + j + 1}</td><td class="l">${esc(r.info.name)}</td><td>${esc(r.info.id) || '—'}</td><td>${esc(r.info.job) || '—'}</td><td>${r.tot.work}</td><td class="ok">${r.tot.att}</td><td class="${r.tot.ab ? 'ab' : ''}">${r.tot.ab}</td><td class="${r.tot.inc ? 'in' : ''}">${r.tot.inc}</td><td>${r.tot.fri}</td><td>${hm(r.tot.mins)}</td><td>${r.tot.ot ? hm(r.tot.ot) : '—'}</td><td>${r.tot.late || '—'}</td><td>${r.tot.due}</td><td>${FLAG_TXT[r.flag]}</td></tr>`).join('')}</tbody>
+      ${last ? `<tfoot><tr><td colspan="5" class="l">الإجمالي</td><td>${T.att}</td><td>${T.ab}</td><td>${T.inc}</td><td>${T.fri}</td><td>${hm(T.mins)}</td><td>${hm(T.ot)}</td><td>${T.late}</td><td>${T.due}</td><td></td></tr></tfoot>` : ''}
       </table>${last ? '<div class="rep-sig"><div>إعداد: المحاسب</div><div>مراجعة: الموارد البشرية</div><div>اعتماد: المدير العام</div></div>' : ''}</section>`);
   }
   $('#print').innerHTML = pages.join('');
@@ -823,8 +840,8 @@ function printReport(){
 function exportExcel(){
   const p = curPeriod(), cs = coSettings(cur.co), vr = visibleRows();
   const q = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
-  const head = ['م','الاسم','رقم الهوية','المهنة','القسم','أيام الفترة','أيام العمل','حضور','غياب','ناقص بيانات','جمعة','إجمالي الساعات','الإضافي','التأخير بالدقائق','الحالة'];
-  const lines = [head.map(q).join(',')].concat(vr.map((r,i) => [i + 1, r.info.name, r.info.id ? '\t' + r.info.id : '', r.info.job, r.info.dept, r.tot.period, r.tot.work, r.tot.att, r.tot.ab, r.tot.inc, r.tot.fri, hm(r.tot.mins), hm(r.tot.ot), r.tot.late, FLAG_TXT[r.flag]].map(q).join(',')));
+  const head = ['م','الاسم','رقم الهوية','المهنة','القسم','أيام الفترة','أيام العمل','حضور','غياب','ناقص بيانات','جمعة','إجمالي الساعات','الإضافي','التأخير بالدقائق','أيام مستحقة','الحالة'];
+  const lines = [head.map(q).join(',')].concat(vr.map((r,i) => [i + 1, r.info.name, r.info.id ? '\t' + r.info.id : '', r.info.job, r.info.dept, r.tot.period, r.tot.work, r.tot.att, r.tot.ab, r.tot.inc, r.tot.fri, hm(r.tot.mins), hm(r.tot.ot), r.tot.late, r.tot.due, FLAG_TXT[r.flag]].map(q).join(',')));
   const blob = new Blob(['﻿' + lines.join('\r\n')], {type:'text/csv;charset=utf-8'});
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
   a.download = `ملخص دوام ${cs.name} - ${MONTHS[p.m]} ${p.y}.csv`; document.body.appendChild(a); a.click(); a.remove();
