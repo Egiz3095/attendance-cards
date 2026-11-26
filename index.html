@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>مولّد كروت الدوام</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Kufi+Arabic:wght@500;700&family=Noto+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--navy:#1c3366;--green:#2f7d4f;--red:#b8382e;--amber:#b7791f;--sky:#dbe8f0;--ink:#1d2430;--mute:#6b7685;--line:#dfe4ea;--soft:#f6f8fa;--bg:#eef1f5}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+body{font-family:"Noto Sans Arabic",sans-serif;color:var(--ink);background:var(--bg);font-size:14px;line-height:1.5}
+button,select,input{font-family:inherit;font-size:14px}
+/* ===== app chrome ===== */
+.bar{position:sticky;top:0;z-index:5;background:#fff;border-bottom:1px solid var(--line);box-shadow:0 1px 8px rgba(20,30,50,.05)}
+.bar-in{max-width:1200px;margin:auto;padding:12px 18px;display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end}
+.app-title{display:flex;align-items:center;gap:10px;margin-left:auto;min-width:210px}
+.app-title .ic{width:38px;height:38px;border-radius:10px;background:var(--navy);color:#fff;display:flex;align-items:center;justify-content:center;font-family:"Noto Kufi Arabic";font-weight:700}
+.app-title h1{font-family:"Noto Kufi Arabic";font-size:17px;line-height:1.2}
+.app-title p{font-size:12px;color:var(--mute)}
+.fld{display:flex;flex-direction:column;gap:3px}
+.fld label{font-size:12px;color:var(--mute);font-weight:500}
+.fld select,.fld input{height:38px;border:1px solid #cfd6de;border-radius:8px;padding:0 10px;background:#fff;min-width:150px}
+.fld select:focus,.fld input:focus{outline:2px solid #9db4d6;border-color:var(--navy)}
+.btn{height:38px;border-radius:8px;border:1px solid #cfd6de;background:#fff;padding:0 14px;cursor:pointer;font-weight:600;display:inline-flex;align-items:center;gap:6px}
+.btn:hover{background:var(--soft)}
+.btn.pri{background:var(--navy);border-color:var(--navy);color:#fff}
+.btn.pri:hover{background:#15284f}
+.btn:disabled{opacity:.5;cursor:default}
+.wrap{max-width:1200px;margin:auto;padding:18px}
+.status{font-size:13px;color:var(--mute);margin-bottom:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.status .dot{width:8px;height:8px;border-radius:50%;background:#aab4bf;display:inline-block}
+.status.ok .dot{background:var(--green)}.status.err{color:var(--red)}.status.err .dot{background:var(--red)}
+.status.load .dot{background:var(--amber);animation:p 1s infinite}
+@keyframes p{50%{opacity:.3}}
+.panel{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:14px}
+.panel h3{font-family:"Noto Kufi Arabic";font-size:14px;margin-bottom:8px}
+.warn-list{max-height:220px;overflow:auto;font-size:13px}
+.warn-list div{padding:4px 0;border-bottom:1px dashed var(--line);display:flex;justify-content:space-between;gap:10px}
+.warn-list b{font-weight:600}
+.tag{font-size:11.5px;padding:1px 8px;border-radius:10px;white-space:nowrap}
+.tag.r{background:#fbe3e1;color:var(--red)}.tag.a{background:#fbf0dc;color:#8a5a00}
+.empty{text-align:center;color:var(--mute);padding:60px 10px}
+.empty b{display:block;font-family:"Noto Kufi Arabic";color:var(--ink);font-size:17px;margin-bottom:6px}
+details.settings{margin-bottom:14px}
+details.settings summary{cursor:pointer;font-weight:600;color:var(--navy);font-size:13.5px}
+.set-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin-top:12px}
+.co-set{border:1px solid var(--line);border-radius:10px;padding:10px;display:flex;gap:10px;align-items:center}
+.co-set .lg{width:52px;height:52px;border-radius:10px;border:1px dashed #b9c3cd;display:flex;align-items:center;justify-content:center;overflow:hidden;background:var(--soft);flex-shrink:0;font-size:11px;color:var(--mute)}
+.co-set .lg img{max-width:100%;max-height:100%}
+.co-set input[type=text]{width:100%;height:32px;border:1px solid #cfd6de;border-radius:6px;padding:0 8px;margin-bottom:5px}
+.co-set .row{display:flex;gap:6px}
+.co-set .mini{font-size:12px;height:28px;padding:0 9px;border-radius:6px;border:1px solid #cfd6de;background:#fff;cursor:pointer}
+.cards{display:flex;flex-direction:column;align-items:center;gap:22px}
+.cards .page{box-shadow:0 4px 22px rgba(20,30,50,.12);border-radius:4px}
+.hint{font-size:12px;color:var(--mute)}
+
+/* ===== the card (A4) ===== */
+.page{width:210mm;height:297mm;padding:11mm 12mm 9mm;display:flex;flex-direction:column;background:#fff;font-size:9.6pt;line-height:1.35;font-variant-numeric:tabular-nums;overflow:hidden;--rh:22.2px}
+.head{display:flex;justify-content:space-between;align-items:center;padding-bottom:9px}
+.brand{display:flex;align-items:center;gap:10px;min-width:62mm}
+.mark{width:48px;height:48px;border-radius:10px;background:var(--navy);color:#fff;display:flex;align-items:center;justify-content:center;font-family:"Noto Sans Arabic";font-weight:700;font-size:11.5pt;overflow:hidden;flex-shrink:0;text-align:center;line-height:1.1}
+.mark.img{background:transparent;border-radius:0;width:auto;max-width:60px}
+.mark img{max-height:48px;max-width:60px;object-fit:contain}
+.brand h2{font-family:"Noto Kufi Arabic";font-size:13pt;font-weight:700;color:var(--navy);line-height:1.25}
+.brand p{font-size:8.3pt;color:var(--mute)}
+.title{text-align:center}
+.title h1{font-family:"Noto Kufi Arabic";font-size:19pt;font-weight:700;line-height:1.25}
+.title p{font-size:8.3pt;color:var(--mute);letter-spacing:.4px}
+.meta{text-align:left;font-size:8.3pt;color:var(--mute);line-height:1.65;min-width:62mm}
+.meta b{color:var(--ink);font-weight:600}
+.rule{height:4px;display:flex;border-radius:2px;overflow:hidden;margin-bottom:10px}
+.rule i{flex:1}.rule i:nth-child(1){background:var(--navy);flex:6}.rule i:nth-child(2){background:var(--green)}.rule i:nth-child(3){background:var(--red)}
+.emp{display:grid;grid-template-columns:1.9fr 1.1fr .95fr .95fr 1.75fr;border:1px solid var(--line);border-radius:9px;background:var(--soft);margin-bottom:10px}
+.emp>div{padding:6px 11px;border-left:1px solid var(--line);min-width:0}.emp>div:last-child{border-left:0}
+.emp label{display:block;font-size:7.6pt;color:var(--mute);margin-bottom:1px}
+.emp b{font-size:10.2pt;font-weight:700;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.emp .nm b{white-space:normal;line-height:1.25}
+.emp .per b{color:var(--navy);white-space:normal;font-size:9.6pt;line-height:1.3}
+.tw{border:1px solid var(--line);border-radius:9px;overflow:hidden;flex-shrink:0}
+.page table{width:100%;border-collapse:collapse}
+.page thead th{font-family:"Noto Kufi Arabic";font-size:8.6pt;font-weight:700;color:#fff;padding:6px 4px;text-align:center}
+th.c0{background:#eef1f4;color:var(--ink)!important}
+th.c1{background:var(--green)}th.c2{background:var(--red)}th.c3{background:#4a5563}th.c4{background:var(--navy)}th.c5{background:var(--sky);color:var(--navy)!important}
+.page tbody td{height:var(--rh);text-align:center;border-top:1px solid var(--line);font-size:9.3pt;padding:0 3px}
+.page tbody tr:nth-child(even) td{background:#fbfcfd}
+td.dt{font-weight:700;text-align:right!important;padding-right:12px!important;white-space:nowrap}
+td.dt .dn{display:inline-block;min-width:16px;text-align:center;color:var(--navy)}
+td.dy{color:var(--mute);border-left:1px solid var(--line)}
+td.tin{color:var(--green);font-weight:600}td.tout{color:var(--red);font-weight:600}
+td small{font-size:7.6pt;font-weight:400;opacity:.85}
+td.hrs{font-weight:700;background:rgba(74,85,99,.04)}
+td.ot{color:var(--navy);font-weight:700}
+td.nt{font-size:7.9pt;color:var(--mute);line-height:1.2}
+.page tbody td:nth-child(n+3){border-left:1px solid var(--line)}
+tr.fr td{background:#fbeeec!important}
+tr.fr td.dt,tr.fr td.dt .dn{color:var(--red)}
+.pill{background:var(--red);color:#fff;border-radius:10px;padding:0 9px;font-size:7.9pt;font-weight:600}
+td.off{color:var(--red);font-weight:600;font-size:8.5pt}
+tr.ab td{background:#fdf3f2!important}
+tr.ab td.st{color:var(--red);font-weight:700}
+tr.inc td{background:#fdf8ee!important}
+tr.inc td.miss{color:var(--amber);font-weight:700}
+tr.nr td{color:#aab3bd}
+tr.nr td.st{font-size:8.3pt}
+.page tfoot td{background:var(--navy);color:#fff;font-weight:700;padding:5px 4px;text-align:center;font-size:9.5pt}
+.page tfoot td.lbl{text-align:right;padding-right:12px;font-family:"Noto Kufi Arabic"}
+.sum{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-top:10px;flex-shrink:0}
+.sum div{border:1px solid var(--line);border-radius:8px;padding:5px 7px 6px;border-top:3px solid #9aa5b1;background:#fff}
+.sum label{display:block;font-size:7.5pt;color:var(--mute);white-space:nowrap}
+.sum b{font-family:"Noto Kufi Arabic";font-size:13.5pt;font-weight:700;line-height:1.25}
+.sum .g{border-top-color:var(--green)}.sum .g b{color:var(--green)}
+.sum .r{border-top-color:var(--red)}.sum .r b{color:var(--red)}
+.sum .a{border-top-color:var(--amber)}.sum .a b{color:var(--amber)}
+.sum .n{border-top-color:var(--navy)}.sum .n b{color:var(--navy)}
+.sig{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:auto;padding-top:8px}
+.sig div{text-align:center}
+.sig .ln{height:30px;border-bottom:1px solid #9aa5b1;margin-bottom:4px}
+.sig b{font-size:9pt;font-weight:700;display:block}
+.sig span{font-size:7.4pt;color:var(--mute)}
+.foot{display:flex;justify-content:space-between;font-size:7.4pt;color:var(--mute);border-top:1px solid var(--line);margin-top:9px;padding-top:5px}
+
+@media print{
+  @page{size:A4;margin:0}
+  body{background:#fff}
+  .bar,.status,.panel,details.settings,.empty,.noprint{display:none!important}
+  .wrap{padding:0;max-width:none}
+  .cards{gap:0;display:block}
+  .cards .page{box-shadow:none;border-radius:0;page-break-after:always;break-after:page}
+  .cards .page:last-child{page-break-after:auto;break-after:auto}
+}
+@media screen and (max-width:900px){.cards .page{zoom:.55}}
+</style>
+</head>
+<body>
+<div class="bar"><div class="bar-in">
+  <div class="app-title"><div class="ic">د</div><div><h1>مولّد كروت الدوام</h1><p>من 21 الشهر السابق إلى 20 الشهر المختار</p></div></div>
+  <div class="fld"><label for="co">الجهة</label><select id="co"></select></div>
+  <div class="fld"><label for="mo">الشهر</label><select id="mo" disabled><option>—</option></select></div>
+  <div class="fld"><label for="emp">الموظف</label><select id="emp" disabled style="min-width:250px"><option>—</option></select></div>
+  <button class="btn pri" id="gen" disabled>إنشاء الكرت</button>
+  <button class="btn" id="all" disabled>كل الموظفين</button>
+  <button class="btn" id="prn" disabled>طباعة / حفظ PDF</button>
+  <button class="btn" id="ref" title="إعادة تحميل البيانات من الشيت">تحديث</button>
+</div></div>
+
+<div class="wrap">
+  <div class="status" id="st"><span class="dot"></span><span id="stt">اختر الجهة لتحميل البيانات</span></div>
+
+  <details class="settings noprint">
+    <summary>الإعدادات: الشعارات وأسماء الجهات والدوام الرسمي</summary>
+    <div class="panel" style="margin-top:10px">
+      <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end">
+        <div class="fld"><label for="ws">بداية الدوام الرسمي</label><input id="ws" type="time" value="08:00"></div>
+        <div class="fld"><label for="we">نهاية الدوام الرسمي</label><input id="we" type="time" value="16:00"></div>
+        <p class="hint">ما بعد نهاية الدوام الرسمي يُحتسب إضافي، والحضور بعد بدايته يُحتسب تأخير.</p>
+      </div>
+      <div class="set-grid" id="coset"></div>
+      <p class="hint" style="margin-top:10px">الشعار والاسم يُحفظان في هذا المتصفح. لتثبيتهما لكل المستخدمين ضع ملف الشعار في مجلد <code>logos</code> بجانب هذا الملف بالاسم الظاهر تحت كل جهة.</p>
+    </div>
+  </details>
+
+  <div class="panel noprint" id="warn" style="display:none"><h3>تنبيهات قبل الطباعة</h3><div class="warn-list" id="wl"></div></div>
+  <div class="cards" id="cards"><div class="empty"><b>ابدأ باختيار الجهة</b>بعدها اختر الشهر والموظف واضغط «إنشاء الكرت»، أو «كل الموظفين» لطباعة كروت الجهة كلها مرة واحدة.</div></div>
+</div>
+
+<script>
+/* ================= الإعدادات ================= */
+const SHEET_ID = '1slusQhE0KJvObkYCkI-KoxQWi2sX8Ks22lHHovEl5gQ';
+const COMPANIES = [
+  {tab:'شركة زحل',     key:'zahal', name:'شركة زحل',     short:'زحل'},
+  {tab:'مصنع الباحة',  key:'baha',  name:'مصنع الباحة',  short:'الباحة'},
+  {tab:'مصنع جدة',     key:'jeddah',name:'مصنع جدة',     short:'جدة'},
+  {tab:'الورش',        key:'works', name:'الورش',        short:'الورش'},
+];
+/* ترتيب الأعمدة في كل التبويبات (يُقرأ بالموضع لا بالاسم) */
+const C = {date:2, name:3, start:4, end:5, note:6, id:7, job:8, dept:9, day:10};
+const MONTHS = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+const DAYS = ['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
+
+/* ================= أدوات ================= */
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const clean = s => String(s ?? '').replace(/ـ/g,'').replace(/\s+/g,' ').trim();
+const store = {
+  get(k, d){ try{ const v = localStorage.getItem('attcard:'+k); return v==null ? d : JSON.parse(v); }catch(e){ return d; } },
+  set(k, v){ try{ localStorage.setItem('attcard:'+k, JSON.stringify(v)); }catch(e){} }
+};
+
+function parseCSV(text){
+  const rows=[]; let row=[], f='', q=false;
+  for(let i=0;i<text.length;i++){
+    const c=text[i];
+    if(q){ if(c==='"'){ if(text[i+1]==='"'){ f+='"'; i++; } else q=false; } else f+=c; }
+    else if(c==='"') q=true;
+    else if(c===','){ row.push(f); f=''; }
+    else if(c==='\n'){ row.push(f); rows.push(row); row=[]; f=''; }
+    else if(c!=='\r') f+=c;
+  }
+  if(f!=='' || row.length){ row.push(f); rows.push(row); }
+  return rows;
+}
+function parseDate(s){
+  s=clean(s); let m;
+  if((m=s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/))) return new Date(+m[1], m[2]-1, +m[3]);
+  /* يوم-شهر-سنة (مثل 21-12-2023 في تبويب مصنع جدة)، ويُعكس فقط إذا كان الرقم الثاني أكبر من 12 */
+  if((m=s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})/))){ let a=+m[1], b=+m[2]; return b>12 ? new Date(+m[3], a-1, b) : new Date(+m[3], b-1, a); }
+  return null;
+}
+/* يرجع الوقت بالدقائق من منتصف الليل */
+function parseTime(s, isEnd){
+  s=clean(s); const m=s.match(/(\d{1,2}):(\d{2})/); if(!m) return null;
+  let h=+m[1], mi=+m[2];
+  const pm=/(م|PM|pm|مساء)/.test(s), am=/(ص|AM|am|صباح)/.test(s);
+  if(pm && h<12) h+=12; else if(am && h===12) h=0;
+  else if(!pm && !am && isEnd && h<8) h+=12;
+  return h*60+mi;
+}
+const dkey = d => d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const hm = mins => { mins=Math.round(mins); return Math.floor(mins/60)+':'+String(mins%60).padStart(2,'0'); };
+function clock(mins){
+  let h=Math.floor(mins/60)%24, m=mins%60; const s=h<12?'ص':'م'; h=h%12||12;
+  return `${h}:${String(m).padStart(2,'0')} <small>${s}</small>`;
+}
+function periodOf(y, m){ /* m = 0..11 الشهر المختار */
+  return {start:new Date(y, m-1, 21), end:new Date(y, m, 20), y, m};
+}
+function monthOfDate(d){ /* أي شهر كرت يقع فيه هذا التاريخ */
+  return d.getDate()>=21 ? {y:d.getMonth()===11?d.getFullYear()+1:d.getFullYear(), m:(d.getMonth()+1)%12} : {y:d.getFullYear(), m:d.getMonth()};
+}
+
+/* ================= البيانات ================= */
+const cache = {};
+let cur = null; /* {co, recs, byEmp, months} */
+
+function coSettings(co){
+  const s = store.get('co:'+co.key, {});
+  return {name: s.name || co.name, logo: s.logo || ''};
+}
+
+async function loadCompany(co, force){
+  if(cache[co.key] && !force) return cache[co.key];
+  setStatus('load', `جاري تحميل بيانات «${co.tab}» من الشيت…`);
+  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(co.tab)}&headers=1`;
+  const res = await fetch(url, {cache:'no-store'});
+  if(!res.ok) throw new Error('تعذر الوصول للشيت ('+res.status+')');
+  const text = await res.text();
+  if(/<html/i.test(text.slice(0,300))) throw new Error('الشيت غير متاح للعرض العام. تأكد أن المشاركة «أي شخص معه الرابط».');
+  const rows = parseCSV(text).slice(1);
+  const recs=[], byEmp=new Map(), months=new Map();
+  for(const r of rows){
+    const d = parseDate(r[C.date]); if(!d) continue;
+    const name = clean(r[C.name]), id = clean(r[C.id]);
+    if(!name && !id) continue;
+    const key = id || name;
+    const rec = {d, k:dkey(d), key, name, id, job:clean(r[C.job]), dept:clean(r[C.dept]),
+      sRaw:clean(r[C.start]), eRaw:clean(r[C.end]), note:clean(r[C.note])};
+    rec.s = rec.sRaw ? parseTime(rec.sRaw,false) : null;
+    rec.e = rec.eRaw ? parseTime(rec.eRaw,true) : null;
+    recs.push(rec);
+    if(!byEmp.has(key)) byEmp.set(key, {key, recs:[]});
+    byEmp.get(key).recs.push(rec);
+    const pm = monthOfDate(d); const mk = pm.y*12+pm.m;
+    months.set(mk, (months.get(mk)||0)+1);
+  }
+  for(const e of byEmp.values()){
+    e.recs.sort((a,b)=>a.d-b.d);
+    e.byDay = new Map(); for(const r of e.recs){ const x=e.byDay.get(r.k); if(!x || ((r.s!=null)+(r.e!=null)) > ((x.s!=null)+(x.e!=null))) e.byDay.set(r.k, r); }
+  }
+  const data = {co, recs, byEmp, months};
+  cache[co.key] = data;
+  return data;
+}
+
+function empInfo(emp, p){
+  const inP = emp.recs.filter(r => r.d>=p.start && r.d<=p.end);
+  const pick = f => { for(let i=inP.length-1;i>=0;i--) if(inP[i][f]) return inP[i][f]; for(let i=emp.recs.length-1;i>=0;i--) if(emp.recs[i][f]) return emp.recs[i][f]; return ''; };
+  return {name:pick('name'), id:pick('id'), job:pick('job'), dept:pick('dept'), count:inP.length};
+}
+
+function employeesIn(data, p){
+  const list=[];
+  for(const e of data.byEmp.values()){
+    const info = empInfo(e, p);
+    if(info.count) list.push({emp:e, info});
+  }
+  list.sort((a,b)=>a.info.name.localeCompare(b.info.name,'ar'));
+  return list;
+}
+
+/* ================= الحساب ================= */
+function workDay(){
+  const t = v => { const [h,m]=v.split(':').map(Number); return h*60+m; };
+  const s=t($('#ws').value||'08:00'), e=t($('#we').value||'16:00');
+  return {s, e, len: e>s ? e-s : e+1440-s};
+}
+function compute(emp, p){
+  const W = workDay(); const days=[]; const tot={period:0, work:0, att:0, ab:0, inc:0, fri:0, mins:0, ot:0, late:0};
+  for(let d=new Date(p.start); d<=p.end; d.setDate(d.getDate()+1)){
+    const dd=new Date(d), r=emp.byDay.get(dkey(dd)), fri=dd.getDay()===5;
+    const row={d:dd, fri, r, type:'', mins:null, ot:0, late:0};
+    tot.period++; if(!fri) tot.work++;
+    const hasS = r && r.s!=null, hasE = r && r.e!=null;
+    if(hasS && hasE){
+      let m = r.e - r.s; if(m<=0) m+=1440;
+      row.type='ok'; row.mins=m; row.ot=Math.max(0, m - W.len); row.late=Math.max(0, r.s - W.s);
+      tot.att++; tot.mins+=m; tot.ot+=row.ot; tot.late+=row.late;
+    } else if(hasS || hasE){ row.type='inc'; tot.inc++; }
+    else if(fri){ row.type='fri'; tot.fri++; }
+    else if(r){ row.type='ab'; tot.ab++; }
+    else row.type='nr';
+    days.push(row);
+  }
+  return {days, tot};
+}
+
+/* ================= الرسم ================= */
+function logoHTML(cs, co){
+  if(cs.logo) return `<div class="mark img"><img src="${cs.logo}" alt=""></div>`;
+  return `<div class="mark" data-fallback="${esc(co.short)}"><img src="logos/${co.key}.png" alt="" onerror="this.parentNode.textContent=this.parentNode.dataset.fallback" onload="this.parentNode.classList.add('img')"></div>`;
+}
+function cardHTML(data, item, p, idx){
+  const {co} = data, cs = coSettings(co), {info} = item, {days, tot} = compute(item.emp, p);
+  const n = days.length; const rh = Math.min(26, (22.2*31/n)).toFixed(1);
+  const today = new Date();
+  const no = `${co.key.toUpperCase().slice(0,3)}-${String(p.y).slice(2)}${String(p.m+1).padStart(2,'0')}-${String(idx+1).padStart(3,'0')}`;
+  const rows = days.map(x=>{
+    const d=x.d, dc=`<td class="dt"><span class="dn">${d.getDate()}</span> ${MONTHS[d.getMonth()]}</td>`;
+    let note = x.r && x.r.note ? esc(x.r.note) : '';
+    if(x.late) note = (note ? note+' · ' : '') + 'تأخير '+x.late+' د';
+    if(x.type==='fri') return `<tr class="fr">${dc}<td class="dy"><span class="pill">الجمعة</span></td><td colspan="4" class="off">إجازة أسبوعية</td><td class="nt">${note}</td></tr>`;
+    const dy = `<td class="dy">${DAYS[d.getDay()]}</td>`;
+    if(x.type==='ok') return `<tr${x.fri?' class="fr"':''}>${dc}${dy}<td class="tin">${clock(x.r.s)}</td><td class="tout">${clock(x.r.e)}</td><td class="hrs">${hm(x.mins)}</td><td class="ot">${x.ot?hm(x.ot):''}</td><td class="nt">${note}</td></tr>`;
+    if(x.type==='inc') return `<tr class="inc">${dc}${dy}<td class="${x.r.s!=null?'tin':'miss'}">${x.r.s!=null?clock(x.r.s):'غير مسجل'}</td><td class="${x.r.e!=null?'tout':'miss'}">${x.r.e!=null?clock(x.r.e):'غير مسجل'}</td><td class="hrs">—</td><td></td><td class="nt">${note||'بيانات ناقصة'}</td></tr>`;
+    if(x.type==='ab') return `<tr class="ab">${dc}${dy}<td colspan="4" class="st">غياب</td><td class="nt">${note}</td></tr>`;
+    return `<tr class="nr">${dc}${dy}<td colspan="4" class="st">لا يوجد سجل</td><td></td></tr>`;
+  }).join('');
+  const W=workDay();
+  return `<section class="page" style="--rh:${rh}px">
+  <div class="head">
+    <div class="brand">${logoHTML(cs, co)}<div><h2>${esc(cs.name)}</h2><p>إدارة الموارد البشرية</p></div></div>
+    <div class="title"><h1>كرت دوام شهري</h1><p>MONTHLY ATTENDANCE CARD</p></div>
+    <div class="meta">رقم الكرت <b><bdi dir="ltr">${no}</bdi></b><br>تاريخ الإصدار <b>${today.getDate()} ${MONTHS[today.getMonth()]} ${today.getFullYear()}</b></div>
+  </div>
+  <div class="rule"><i></i><i></i><i></i></div>
+  <div class="emp">
+    <div class="nm"><label>اسم الموظف</label><b>${esc(info.name)}</b></div>
+    <div><label>رقم الهوية</label><b><bdi dir="ltr">${esc(info.id)||'—'}</bdi></b></div>
+    <div><label>المهنة</label><b>${esc(info.job)||'—'}</b></div>
+    <div><label>القسم</label><b>${esc(info.dept)||'—'}</b></div>
+    <div class="per"><label>فترة الكرت — شهر ${MONTHS[p.m]} ${p.y}</label><b>${p.start.getDate()} ${MONTHS[p.start.getMonth()]} ← ${p.end.getDate()} ${MONTHS[p.end.getMonth()]} ${p.end.getFullYear()}</b></div>
+  </div>
+  <div class="tw"><table>
+    <thead><tr><th class="c0" style="width:14%">التاريخ</th><th class="c0" style="width:12%">اليوم</th><th class="c1" style="width:13%">بداية الدوام</th><th class="c2" style="width:13%">نهاية الدوام</th><th class="c3" style="width:10%">الساعات</th><th class="c4" style="width:10%">الإضافي</th><th class="c5">الملاحظات</th></tr></thead>
+    <tbody>${rows}</tbody>
+    <tfoot><tr><td colspan="4" class="lbl">الإجمالي</td><td>${hm(tot.mins)}</td><td>${hm(tot.ot)}</td><td></td></tr></tfoot>
+  </table></div>
+  <div class="sum">
+    <div><label>أيام الفترة</label><b>${tot.period}</b></div>
+    <div><label>أيام العمل</label><b>${tot.work}</b></div>
+    <div class="g"><label>أيام الحضور</label><b>${tot.att}</b></div>
+    <div class="r"><label>أيام الغياب</label><b>${tot.ab}</b></div>
+    <div class="a"><label>ناقص بيانات</label><b>${tot.inc}</b></div>
+    <div><label>إجمالي الساعات</label><b>${hm(tot.mins)}</b></div>
+    <div class="n"><label>إجمالي الإضافي</label><b>${hm(tot.ot)}</b></div>
+  </div>
+  <div class="sig">
+    <div><div class="ln"></div><b>توقيع الموظف</b><span>الاسم / التاريخ</span></div>
+    <div><div class="ln"></div><b>المشرف المباشر</b><span>الاسم / التاريخ</span></div>
+    <div><div class="ln"></div><b>المحاسب</b><span>الاسم / التاريخ</span></div>
+    <div><div class="ln"></div><b>المدير</b><span>الاسم / التاريخ</span></div>
+  </div>
+  <div class="foot"><span>الدوام الرسمي من ${clock(W.s).replace(/<\/?small>/g,'')} إلى ${clock(W.e).replace(/<\/?small>/g,'')} · ما بعده يُحتسب إضافي · خانة الإضافي تُترك فارغة إذا لم يوجد</span><span>${esc(cs.name)}</span></div>
+</section>`;
+}
+
+function render(items){
+  if(!cur || !items.length) return;
+  const p = curPeriod();
+  const all = employeesIn(cur, p);
+  $('#cards').innerHTML = items.map(it => cardHTML(cur, it, p, all.findIndex(a=>a.emp===it.emp))).join('');
+  /* التنبيهات */
+  const W=[];
+  for(const it of items){
+    const {days} = compute(it.emp, p);
+    const inc = days.filter(x=>x.type==='inc'), ab = days.filter(x=>x.type==='ab');
+    if(!it.info.job) W.push(`<div><span><b>${esc(it.info.name)}</b>: المهنة غير مسجلة</span><span class="tag a">بيانات</span></div>`);
+    if(inc.length) W.push(`<div><span><b>${esc(it.info.name)}</b>: وقت ناقص في ${inc.map(x=>x.d.getDate()+'/'+(x.d.getMonth()+1)).join('، ')}</span><span class="tag a">${inc.length} ناقص</span></div>`);
+    if(ab.length) W.push(`<div><span><b>${esc(it.info.name)}</b>: غياب ${ab.map(x=>x.d.getDate()+'/'+(x.d.getMonth()+1)).join('، ')}</span><span class="tag r">${ab.length} غياب</span></div>`);
+  }
+  $('#warn').style.display = W.length ? '' : 'none';
+  $('#wl').innerHTML = W.join('');
+  $('#prn').disabled = false;
+  setStatus('ok', `${items.length===1?'تم إنشاء الكرت':'تم إنشاء '+items.length+' كرت'} — ${cur.co.tab} — شهر ${MONTHS[p.m]} ${p.y}`);
+}
+
+/* ================= الواجهة ================= */
+function setStatus(cls, msg){ $('#st').className='status '+cls; $('#stt').textContent=msg; }
+function curPeriod(){ const v=+$('#mo').value; return periodOf(Math.floor(v/12), v%12); }
+
+function fillMonths(){
+  const keys = [...cur.months.keys()].sort((a,b)=>b-a);
+  $('#mo').innerHTML = keys.map(k=>`<option value="${k}">${MONTHS[k%12]} ${Math.floor(k/12)}</option>`).join('');
+  /* افتراضيًا: آخر شهر انتهت فترته (حتى يوم 20) داخل البيانات */
+  const last = cur.recs.reduce((m,r)=>r.d>m?r.d:m, new Date(0));
+  const done = keys.find(k=>periodOf(Math.floor(k/12), k%12).end <= last);
+  if(done!=null) $('#mo').value = done;
+  $('#mo').disabled = !keys.length;
+  fillEmployees();
+}
+function fillEmployees(){
+  const list = employeesIn(cur, curPeriod());
+  $('#emp').innerHTML = list.map((it,i)=>`<option value="${i}">${esc(it.info.name)}${it.info.job?' — '+esc(it.info.job):''}</option>`).join('');
+  $('#emp')._list = list;
+  const ok = list.length>0;
+  $('#emp').disabled = $('#gen').disabled = $('#all').disabled = !ok;
+}
+
+async function selectCompany(force){
+  const co = COMPANIES[+$('#co').value];
+  $('#mo').disabled = $('#emp').disabled = $('#gen').disabled = $('#all').disabled = true;
+  try{
+    cur = await loadCompany(co, force);
+    fillMonths();
+    setStatus('ok', `تم تحميل «${co.tab}»: ${cur.byEmp.size} موظف، ${cur.recs.length.toLocaleString('ar')} سجل`);
+  }catch(err){ setStatus('err', err.message || 'تعذر تحميل البيانات'); }
+}
+
+function buildSettings(){
+  $('#coset').innerHTML = COMPANIES.map((co,i)=>{
+    const cs = coSettings(co);
+    return `<div class="co-set" data-i="${i}">
+      <div class="lg">${cs.logo?`<img src="${cs.logo}" alt="">`:`<img src="logos/${co.key}.png" alt="" onerror="this.replaceWith('لا شعار')">`}</div>
+      <div style="flex:1;min-width:0">
+        <input type="text" value="${esc(cs.name)}" aria-label="اسم الجهة على الكرت">
+        <div class="row"><label class="mini" style="display:inline-flex;align-items:center">رفع شعار<input type="file" accept="image/*" hidden></label><button class="mini" data-act="clr">حذف</button></div>
+        <div class="hint">${esc(co.tab)} · logos/${co.key}.png</div>
+      </div></div>`;
+  }).join('');
+  $('#coset').querySelectorAll('.co-set').forEach(el=>{
+    const co = COMPANIES[+el.dataset.i];
+    const save = patch => { store.set('co:'+co.key, Object.assign(store.get('co:'+co.key,{}), patch)); };
+    el.querySelector('input[type=text]').addEventListener('change', e=>{ save({name:e.target.value.trim()}); });
+    el.querySelector('input[type=file]').addEventListener('change', e=>{
+      const f=e.target.files[0]; if(!f) return;
+      const rd=new FileReader(); rd.onload=()=>{ save({logo:rd.result}); buildSettings(); }; rd.readAsDataURL(f);
+    });
+    el.querySelector('[data-act=clr]').addEventListener('click', ()=>{ save({logo:''}); buildSettings(); });
+  });
+}
+
+$('#co').innerHTML = `<option value="" disabled selected>اختر الجهة</option>` + COMPANIES.map((c,i)=>`<option value="${i}">${esc(c.name)}</option>`).join('');
+$('#co').addEventListener('change', ()=>selectCompany(false));
+$('#mo').addEventListener('change', fillEmployees);
+$('#gen').addEventListener('click', ()=>{ const l=$('#emp')._list; render([l[+$('#emp').value]]); });
+$('#all').addEventListener('click', ()=>{ render($('#emp')._list); });
+$('#prn').addEventListener('click', ()=>window.print());
+$('#ref').addEventListener('click', ()=>{ if($('#co').value!=='') selectCompany(true); });
+['ws','we'].forEach(id=>{ const el=$('#'+id); el.value=store.get(id, el.value); el.addEventListener('change',()=>store.set(id, el.value)); });
+buildSettings();
+</script>
+</body>
+</html>
