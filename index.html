@@ -614,13 +614,10 @@ function cardHTML(data, item, p, idx){
     <tbody>${rows}</tbody>
     <tfoot><tr><td colspan="4" class="lbl">الإجمالي</td><td>${hm(tot.mins)}</td><td>${hm(tot.ot)}</td><td></td></tr></tfoot>
   </table></div>
-  <div class="sum" style="grid-template-columns:repeat(${R.friFactor?8:7},1fr)">
-    <div><label>أيام الفترة</label><b>${tot.period}</b></div>
-    <div><label>أيام العمل</label><b>${tot.work}</b></div>
+  <div class="sum" style="grid-template-columns:repeat(${R.friFactor?5:4},1fr)">
     <div class="g"><label>أيام الحضور</label><b>${tot.att}</b></div>
     <div class="r"><label>أيام الغياب</label><b>${tot.ab}</b></div>
     <div class="a"><label>ناقص بيانات</label><b>${tot.inc}</b></div>
-    <div><label>إجمالي الساعات</label><b>${hm(tot.mins)}</b></div>
     <div class="n"><label>إجمالي الإضافي</label><b>${hm(tot.ot)}</b></div>${R.friFactor?`<div class="g"><label>أيام مستحقة</label><b><bdi dir="ltr">${tot.due}</bdi></b></div>`:""}
   </div>
   <div class="sig">
