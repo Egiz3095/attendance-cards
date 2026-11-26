@@ -232,22 +232,27 @@ code{background:var(--wash);border-radius:5px;padding:0 5px;font-size:12px}
 .emp b{font-size:10.2pt;font-weight:700;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .emp .nm b{white-space:normal;line-height:1.25}
 .emp .per b{color:var(--navy);white-space:normal;font-size:9.6pt;line-height:1.3}
-.tw{border:1px solid var(--line);border-radius:9px;overflow:hidden;flex-shrink:0}
+.tw{border:1px solid #c5ced9;border-radius:9px;overflow:hidden;flex-shrink:0}
 .page table{width:100%;border-collapse:collapse}
 .page thead th{font-family:"Noto Kufi Arabic";font-size:8.6pt;font-weight:700;color:#fff;padding:6px 4px;text-align:center}
 th.c0{background:#eef1f4;color:var(--ink)!important}
 th.c1{background:var(--green)}th.c2{background:var(--red)}th.c3{background:#4a5563}th.c4{background:var(--navy)}th.c5{background:var(--sky);color:var(--navy)!important}
-.page tbody td{height:var(--rh);text-align:center;border-top:1px solid var(--line);font-size:9.3pt;padding:0 3px}
+.page tbody td{height:var(--rh);text-align:center;border-top:1px solid #e6eaef;border-left:1px solid #d4dbe4;font-size:9.3pt;padding:0 3px}
 .page tbody tr:nth-child(even) td{background:#fbfcfd}
 td.dt{font-weight:700;text-align:right!important;padding-right:12px!important;white-space:nowrap}
 td.dt .dn{display:inline-block;min-width:16px;text-align:center;color:var(--navy)}
-td.dy{color:var(--mute);border-left:1px solid var(--line)}
+td.dy{color:var(--mute)}
 td.tin{color:var(--green);font-weight:600}td.tout{color:var(--red);font-weight:600}
 td small{font-size:7.6pt;font-weight:400;opacity:.85}
 td.hrs{font-weight:700;background:rgba(74,85,99,.04)}
 td.ot{color:var(--navy);font-weight:700}
 td.nt{font-size:7.9pt;color:var(--mute);line-height:1.2}
-.page tbody td:nth-child(n+3){border-left:1px solid var(--line)}
+.page tbody td:last-child,.page thead th:last-child,.page tfoot td:last-child{border-left:0}
+.page thead th{border-left:1px solid rgba(255,255,255,.32)}
+.page thead th.c0{border-left-color:#d4dbe4}
+.page thead th:nth-child(2),.page tbody td.dy{border-left:1.5px solid #b3bfcd!important}
+.page tbody td.hrs{border-right:1px solid #d4dbe4}
+.page tfoot td{border-left:1px solid rgba(255,255,255,.22)}
 tr.fr td{background:#fbeeec!important}
 tr.fr td.dt,tr.fr td.dt .dn{color:var(--red)}
 .pill{background:var(--red);color:#fff;border-radius:10px;padding:0 9px;font-size:7.9pt;font-weight:600}
