@@ -281,6 +281,12 @@ tr.nr td.st{font-size:8.3pt}
 .foot{display:flex;justify-content:space-between;font-size:7.4pt;color:var(--mute);border-top:1px solid var(--line);margin-top:9px;padding-top:5px}
 
 
+td.dash{color:#c3cad4}
+tr.fr td.dash{color:#dfb3ad}
+td.nt.off{color:var(--red);font-weight:600;font-size:8.4pt}
+tr.ab td.nt.st{color:var(--red);font-weight:700;font-size:8.6pt}
+tr.nr td.nt.st{color:#9aa4b0;font-size:8.2pt}
+
 @page{size:A4;margin:0}
 @page land{size:A4 landscape;margin:0}
 @media print{
@@ -560,12 +566,12 @@ function cardHTML(data, item, p, idx){
     const d=x.d, dc=`<td class="dt"><span class="dn">${d.getDate()}</span> ${MONTHS[d.getMonth()]}</td>`;
     let note = x.r && x.r.note ? esc(x.r.note) : '';
     if(x.late) note = (note ? note+' · ' : '') + 'تأخير '+x.late+' د';
-    if(x.type==='fri') return `<tr class="fr">${dc}<td class="dy"><span class="pill">الجمعة</span></td><td colspan="4" class="off">إجازة أسبوعية</td><td class="nt">${note}</td></tr>`;
+    if(x.type==='fri') return `<tr class="fr">${dc}<td class="dy"><span class="pill">الجمعة</span></td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td><td class="nt off">إجازة أسبوعية${note?' · '+note:''}</td></tr>`;
     const dy = `<td class="dy">${DAYS[d.getDay()]}</td>`;
     if(x.type==='ok') return `<tr${x.fri?' class="fr"':''}>${dc}${dy}<td class="tin">${clock(x.r.s)}</td><td class="tout">${clock(x.r.e)}</td><td class="hrs">${hm(x.mins)}</td><td class="ot">${x.ot?hm(x.ot):''}</td><td class="nt">${note}</td></tr>`;
     if(x.type==='inc') return `<tr class="inc">${dc}${dy}<td class="${x.r.s!=null?'tin':'miss'}">${x.r.s!=null?clock(x.r.s):'غير مسجل'}</td><td class="${x.r.e!=null?'tout':'miss'}">${x.r.e!=null?clock(x.r.e):'غير مسجل'}</td><td class="hrs">—</td><td></td><td class="nt">${note||'بيانات ناقصة'}</td></tr>`;
-    if(x.type==='ab') return `<tr class="ab">${dc}${dy}<td colspan="4" class="st">غياب</td><td class="nt">${note}</td></tr>`;
-    return `<tr class="nr">${dc}${dy}<td colspan="4" class="st">لا يوجد سجل</td><td></td></tr>`;
+    if(x.type==='ab') return `<tr class="ab">${dc}${dy}<td class="dash">—</td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td><td class="nt st">غياب${note?' · '+note:''}</td></tr>`;
+    return `<tr class="nr">${dc}${dy}<td class="dash">—</td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td><td class="nt st">لا يوجد سجل</td></tr>`;
   }).join('');
   const W=workDay();
   return `<section class="page" style="--rh:${rh}px">
