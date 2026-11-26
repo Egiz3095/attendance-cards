@@ -397,7 +397,7 @@ tr.fr td.dt{color:var(--red)}
     <div class="hours"><div class="fld"><label for="ws">بداية الدوام</label><input id="ws" type="time" value="08:00"></div><div class="fld"><label for="we">نهاية الدوام</label><input id="we" type="time" value="16:00"></div></div>
     <p class="hint" style="margin-bottom:22px">ما زاد عن ساعات الدوام الرسمي يُحتسب إضافي، والحضور بعد بدايته يُكتب تأخير في ملاحظات الكرت.</p>
     <h4>قواعد شركة زحل</h4>
-    <p class="hint" style="margin-bottom:22px">الدوام من 8:00 ص إلى 4:00 م. الإضافي يُحتسب بعد 4:00 م بأنصاف الساعات، ولا يُحتسب إلا إذا كُتب في الملاحظات «إضافي - إنتاج أكثر من 200 م». العمل يوم الجمعة يُحتسب يومًا ونصفًا حتى نهاية الدوام، ويُضاف إليه الإضافي بعد 4:00 م بنفس الشرط. أيام الإضافي = ساعات الإضافي المعتمدة ÷ 10. إعدادات الدوام أعلاه تخص باقي الجهات.</p>
+    <p class="hint" style="margin-bottom:22px">الدوام من 8:00 ص إلى 4:00 م. الإضافي يُحتسب بعد 4:00 م بأنصاف الساعات، ولا يُحتسب إلا إذا كُتب في الملاحظات «إضافي - إنتاج أكثر من 200 م». العمل يوم الجمعة يُحتسب يومًا ونصفًا حتى نهاية الدوام، ويُضاف إليه الإضافي بعد 4:00 م بنفس الشرط. أيام الإضافي = (ساعات الإضافي المعتمدة في غير الجمعة × 1.5 + ساعات إضافي الجمعة) ÷ 10. إعدادات الدوام أعلاه تخص باقي الجهات.</p>
     <h4>الجهات والشعارات</h4>
     <div id="coset"></div>
     <p class="hint">الشعارات الافتراضية في مجلد <code>logos</code> على GitHub. الشعار أو الاسم المرفوع هنا يُحفظ في هذا المتصفح فقط.</p>
@@ -535,7 +535,7 @@ function employeesIn(data, p){
 /* ================= الحساب ================= */
 /* قواعد كل جهة. الجهة غير المذكورة تستخدم الدوام من الإعدادات والإضافي بالدقيقة */
 const RULES = {
-  zahal: {start:'08:00', end:'16:00', otNote:/أكثر\s*من\s*200/, otNoteTxt:'إضافي - إنتاج أكثر من 200 م', otRound:30, friFactor:1.5, otDayHours:10},
+  zahal: {start:'08:00', end:'16:00', otNote:/أكثر\s*من\s*200/, otNoteTxt:'إضافي - إنتاج أكثر من 200 م', otRound:30, friFactor:1.5, otDayHours:10, otFactor:1.5},
 };
 const ruleOf = co => (co && RULES[co.key]) || {};
 function workDay(co){
@@ -546,7 +546,7 @@ function workDay(co){
 }
 function compute(emp, p, co){
   co = co || (cur && cur.co); const R = ruleOf(co), W = workDay(co);
-  const days=[]; const tot={period:0, work:0, att:0, ab:0, inc:0, fri:0, friWork:0, mins:0, ot:0, late:0, due:0};
+  const days=[]; const tot={period:0, work:0, att:0, ab:0, inc:0, fri:0, friWork:0, mins:0, ot:0, otFri:0, late:0, due:0};
   for(let d=new Date(p.start); d<=p.end; d.setDate(d.getDate()+1)){
     const dd=new Date(d), r=emp.byDay.get(dkey(dd)), fri=dd.getDay()===5;
     const row={d:dd, fri, r, type:'', mins:null, ot:0, late:0, otSkip:0};
@@ -559,7 +559,7 @@ function compute(emp, p, co){
       if(ot && R.otNote && !R.otNote.test(r.note || '')){ row.otSkip = ot; ot = 0; }
       if(R.otRound) ot = Math.floor(ot / R.otRound) * R.otRound;
       row.type='ok'; row.mins=m; row.ot=ot; row.late=Math.max(0, r.s - W.s);
-      tot.att++; tot.mins+=m; tot.ot+=ot; tot.late+=row.late;
+      tot.att++; tot.mins+=m; tot.ot+=ot; tot.late+=row.late; if(fri) tot.otFri+=ot;
       if(fri){ tot.friWork++; row.friWork = true; }
     } else if(hasS || hasE){ row.type='inc'; tot.inc++; }
     else if(fri){ row.type='fri'; tot.fri++; }
@@ -569,7 +569,8 @@ function compute(emp, p, co){
   }
   tot.due = (tot.att - tot.friWork) + tot.friWork * (R.friFactor || 1);
   /* أيام الإضافي = ساعات الإضافي المعتمدة ÷ ساعات اليوم الإضافي (يوم الجمعة نفسه محسوب يومًا ونصفًا في الأيام المستحقة) */
-  tot.otDays = R.otDayHours ? Math.round(tot.ot / 60 / R.otDayHours * 100) / 100 : 0;
+  /* ساعات الإضافي في غير الجمعة × 1.5، وساعات الجمعة بدون مضاعفة لأن يوم الجمعة محسوب يومًا ونصفًا، ثم القسمة على 10 */
+  tot.otDays = R.otDayHours ? Math.round(((tot.ot - tot.otFri) * (R.otFactor || 1) + tot.otFri) / 60 / R.otDayHours * 100) / 100 : 0;
   return {days, tot};
 }
 
