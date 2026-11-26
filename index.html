@@ -188,7 +188,7 @@ code{background:var(--wash);border-radius:5px;padding:0 5px;font-size:12px}
 
 #print{display:none}
 
-.rep{width:297mm;height:210mm;padding:10mm 11mm;background:#fff;font-family:"Noto Sans Arabic",sans-serif;font-size:8.4pt;color:#1d2430;page:land;overflow:hidden}
+.rep{width:297mm;height:210mm;padding:3mm;background:#fff;font-family:"Noto Sans Arabic",sans-serif;font-size:8.4pt;color:#1d2430;page:land;overflow:hidden}
 .rep-h{display:flex;align-items:center;gap:12px;border-bottom:3px solid var(--navy);padding-bottom:7px;margin-bottom:8px}
 .rep-h img{max-height:42px;max-width:58px}
 .rep-h h1{font-family:"Noto Kufi Arabic";font-size:15pt;color:var(--navy);line-height:1.25}
@@ -211,7 +211,7 @@ code{background:var(--wash);border-radius:5px;padding:0 5px;font-size:12px}
 
 /* ===== the card (A4) ===== */
 /* ===== the card (A4) ===== */
-.page{width:210mm;height:297mm;padding:11mm 12mm 9mm;display:flex;flex-direction:column;background:#fff;font-size:9.6pt;line-height:1.35;font-variant-numeric:tabular-nums;overflow:hidden;--rh:22.2px}
+.page{width:210mm;height:297mm;padding:3mm;display:flex;flex-direction:column;background:#fff;font-size:9.6pt;line-height:1.35;font-variant-numeric:tabular-nums;overflow:hidden;--rh:22.2px}
 .head{display:flex;justify-content:space-between;align-items:center;padding-bottom:9px}
 .brand{display:flex;align-items:center;gap:10px;min-width:62mm}
 .mark{width:48px;height:48px;border-radius:10px;background:var(--navy);color:#fff;display:flex;align-items:center;justify-content:center;font-family:"Noto Sans Arabic";font-weight:700;font-size:11.5pt;overflow:hidden;flex-shrink:0;text-align:center;line-height:1.1}
@@ -581,7 +581,7 @@ function logoHTML(cs, co){
 }
 function cardHTML(data, item, p, idx){
   const {co} = data, cs = coSettings(co), {info} = item, {days, tot} = compute(item.emp, p, co), R = ruleOf(co);
-  const n = days.length; const rh = Math.min(26, (22.2*31/n)).toFixed(1);
+  const n = days.length; const rh = Math.min(28, (24*31/n)).toFixed(1);
   const today = new Date();
   const no = `${co.key.toUpperCase().slice(0,3)}-${String(p.y).slice(2)}${String(p.m+1).padStart(2,'0')}-${String(idx+1).padStart(3,'0')}`;
   const rows = days.map(x=>{
