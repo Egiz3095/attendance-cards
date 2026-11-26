@@ -397,7 +397,7 @@ tr.fr td.dt{color:var(--red)}
     <div class="hours"><div class="fld"><label for="ws">بداية الدوام</label><input id="ws" type="time" value="08:00"></div><div class="fld"><label for="we">نهاية الدوام</label><input id="we" type="time" value="16:00"></div></div>
     <p class="hint" style="margin-bottom:22px">ما زاد عن ساعات الدوام الرسمي يُحتسب إضافي، والحضور بعد بدايته يُكتب تأخير في ملاحظات الكرت.</p>
     <h4>قواعد شركة زحل</h4>
-    <p class="hint" style="margin-bottom:22px">الدوام من 8:00 ص إلى 4:00 م. الإضافي يُحتسب بعد 4:00 م بأنصاف الساعات، ولا يُحتسب إلا إذا كُتب في الملاحظات «إضافي - إنتاج أكثر من 200 م». العمل يوم الجمعة يُحتسب يومًا ونصفًا حتى نهاية الدوام، ويُضاف إليه الإضافي بعد 4:00 م بنفس الشرط. إعدادات الدوام أعلاه تخص باقي الجهات.</p>
+    <p class="hint" style="margin-bottom:22px">الدوام من 8:00 ص إلى 4:00 م. الإضافي يُحتسب بعد 4:00 م بأنصاف الساعات، ولا يُحتسب إلا إذا كُتب في الملاحظات «إضافي - إنتاج أكثر من 200 م». العمل يوم الجمعة يُحتسب يومًا ونصفًا حتى نهاية الدوام، ويُضاف إليه الإضافي بعد 4:00 م بنفس الشرط. أيام الإضافي = ساعات الإضافي المعتمدة ÷ 10. إعدادات الدوام أعلاه تخص باقي الجهات.</p>
     <h4>الجهات والشعارات</h4>
     <div id="coset"></div>
     <p class="hint">الشعارات الافتراضية في مجلد <code>logos</code> على GitHub. الشعار أو الاسم المرفوع هنا يُحفظ في هذا المتصفح فقط.</p>
@@ -535,7 +535,7 @@ function employeesIn(data, p){
 /* ================= الحساب ================= */
 /* قواعد كل جهة. الجهة غير المذكورة تستخدم الدوام من الإعدادات والإضافي بالدقيقة */
 const RULES = {
-  zahal: {start:'08:00', end:'16:00', otNote:/أكثر\s*من\s*200/, otNoteTxt:'إضافي - إنتاج أكثر من 200 م', otRound:30, friFactor:1.5},
+  zahal: {start:'08:00', end:'16:00', otNote:/أكثر\s*من\s*200/, otNoteTxt:'إضافي - إنتاج أكثر من 200 م', otRound:30, friFactor:1.5, otDayHours:10},
 };
 const ruleOf = co => (co && RULES[co.key]) || {};
 function workDay(co){
@@ -568,6 +568,8 @@ function compute(emp, p, co){
     days.push(row);
   }
   tot.due = (tot.att - tot.friWork) + tot.friWork * (R.friFactor || 1);
+  /* أيام الإضافي = ساعات الإضافي المعتمدة ÷ ساعات اليوم الإضافي (يوم الجمعة نفسه محسوب يومًا ونصفًا في الأيام المستحقة) */
+  tot.otDays = R.otDayHours ? Math.round(tot.ot / 60 / R.otDayHours * 100) / 100 : 0;
   return {days, tot};
 }
 
@@ -614,11 +616,11 @@ function cardHTML(data, item, p, idx){
     <tbody>${rows}</tbody>
     <tfoot><tr><td colspan="4" class="lbl">الإجمالي</td><td>${hm(tot.mins)}</td><td>${hm(tot.ot)}</td><td></td></tr></tfoot>
   </table></div>
-  <div class="sum" style="grid-template-columns:repeat(${R.friFactor?5:4},1fr)">
+  <div class="sum" style="grid-template-columns:repeat(${4+(R.friFactor?1:0)+(R.otDayHours?1:0)},1fr)">
     <div class="g"><label>أيام الحضور</label><b>${tot.att}</b></div>
     <div class="r"><label>أيام الغياب</label><b>${tot.ab}</b></div>
     <div class="a"><label>ناقص بيانات</label><b>${tot.inc}</b></div>
-    <div class="n"><label>إجمالي الإضافي</label><b>${hm(tot.ot)}</b></div>${R.friFactor?`<div class="g"><label>أيام مستحقة</label><b><bdi dir="ltr">${tot.due}</bdi></b></div>`:""}
+    <div class="n"><label>إجمالي الإضافي ساعات</label><b>${hm(tot.ot)}</b></div>${R.otDayHours?`<div class="n"><label>إجمالي الإضافي يوم</label><b><bdi dir="ltr">${tot.otDays}</bdi></b></div>`:""}${R.friFactor?`<div class="g"><label>أيام مستحقة</label><b><bdi dir="ltr">${tot.due}</bdi></b></div>`:""}
   </div>
   <div class="sig">
     <div><div class="ln"></div><b>توقيع الموظف</b></div>
@@ -820,15 +822,15 @@ function printReport(){
   const p = curPeriod(), co = cur.co, cs = coSettings(co), vr = visibleRows();
   if(!vr.length) return toast('لا يوجد موظفون في التقرير');
   const per = 26, pages = [];
-  const T = vr.reduce((a,r) => { for(const k of ['att','ab','inc','fri','mins','ot','late','due']) a[k] += r.tot[k]; return a; }, {att:0, ab:0, inc:0, fri:0, mins:0, ot:0, late:0, due:0});
+  const T = vr.reduce((a,r) => { for(const k of ['att','ab','inc','fri','mins','ot','late','due','otDays']) a[k] += r.tot[k]; return a; }, {att:0, ab:0, inc:0, fri:0, mins:0, ot:0, late:0, due:0, otDays:0});
   for(let s = 0; s < vr.length; s += per){
     const chunk = vr.slice(s, s + per), last = s + per >= vr.length;
     pages.push(`<section class="rep">
       <div class="rep-h"><img src="${cs.logo || 'logos/' + co.key + '.png'}" alt="" onerror="this.remove()"><div class="g"><h1>ملخص دوام ${esc(cs.name)}</h1><p>شهر ${MONTHS[p.m]} ${p.y}، من ${fmtD(p.start)} إلى ${fmtD(p.end)} ${p.end.getFullYear()}</p></div>
       <div class="m">عدد الموظفين <b>${vr.length}</b><br>صفحة <b>${pages.length + 1}</b> من <b>${Math.ceil(vr.length / per)}</b></div></div>
-      <table><thead><tr><th>م</th><th>الاسم</th><th>رقم الهوية</th><th>المهنة</th><th>أيام العمل</th><th>حضور</th><th>غياب</th><th>ناقص</th><th>جمعة</th><th>الساعات</th><th>الإضافي</th><th>التأخير (د)</th><th>أيام مستحقة</th><th>الحالة</th></tr></thead>
-      <tbody>${chunk.map((r,j) => `<tr><td>${s + j + 1}</td><td class="l">${esc(r.info.name)}</td><td>${esc(r.info.id) || '—'}</td><td>${esc(r.info.job) || '—'}</td><td>${r.tot.work}</td><td class="ok">${r.tot.att}</td><td class="${r.tot.ab ? 'ab' : ''}">${r.tot.ab}</td><td class="${r.tot.inc ? 'in' : ''}">${r.tot.inc}</td><td>${r.tot.fri}</td><td>${hm(r.tot.mins)}</td><td>${r.tot.ot ? hm(r.tot.ot) : '—'}</td><td>${r.tot.late || '—'}</td><td>${r.tot.due}</td><td>${FLAG_TXT[r.flag]}</td></tr>`).join('')}</tbody>
-      ${last ? `<tfoot><tr><td colspan="5" class="l">الإجمالي</td><td>${T.att}</td><td>${T.ab}</td><td>${T.inc}</td><td>${T.fri}</td><td>${hm(T.mins)}</td><td>${hm(T.ot)}</td><td>${T.late}</td><td>${T.due}</td><td></td></tr></tfoot>` : ''}
+      <table><thead><tr><th>م</th><th>الاسم</th><th>رقم الهوية</th><th>المهنة</th><th>أيام العمل</th><th>حضور</th><th>غياب</th><th>ناقص</th><th>جمعة</th><th>الساعات</th><th>الإضافي ساعات</th><th>الإضافي يوم</th><th>التأخير (د)</th><th>أيام مستحقة</th><th>الحالة</th></tr></thead>
+      <tbody>${chunk.map((r,j) => `<tr><td>${s + j + 1}</td><td class="l">${esc(r.info.name)}</td><td>${esc(r.info.id) || '—'}</td><td>${esc(r.info.job) || '—'}</td><td>${r.tot.work}</td><td class="ok">${r.tot.att}</td><td class="${r.tot.ab ? 'ab' : ''}">${r.tot.ab}</td><td class="${r.tot.inc ? 'in' : ''}">${r.tot.inc}</td><td>${r.tot.fri}</td><td>${hm(r.tot.mins)}</td><td>${r.tot.ot ? hm(r.tot.ot) : '—'}</td><td>${r.tot.otDays || '—'}</td><td>${r.tot.late || '—'}</td><td>${r.tot.due}</td><td>${FLAG_TXT[r.flag]}</td></tr>`).join('')}</tbody>
+      ${last ? `<tfoot><tr><td colspan="5" class="l">الإجمالي</td><td>${T.att}</td><td>${T.ab}</td><td>${T.inc}</td><td>${T.fri}</td><td>${hm(T.mins)}</td><td>${hm(T.ot)}</td><td>${Math.round(T.otDays*100)/100}</td><td>${T.late}</td><td>${T.due}</td><td></td></tr></tfoot>` : ''}
       </table>${last ? '<div class="rep-sig"><div>إعداد: المحاسب</div><div>مراجعة: الموارد البشرية</div><div>اعتماد: المدير العام</div></div>' : ''}</section>`);
   }
   $('#print').innerHTML = pages.join('');
@@ -837,8 +839,8 @@ function printReport(){
 function exportExcel(){
   const p = curPeriod(), cs = coSettings(cur.co), vr = visibleRows();
   const q = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
-  const head = ['م','الاسم','رقم الهوية','المهنة','القسم','أيام الفترة','أيام العمل','حضور','غياب','ناقص بيانات','جمعة','إجمالي الساعات','الإضافي','التأخير بالدقائق','أيام مستحقة','الحالة'];
-  const lines = [head.map(q).join(',')].concat(vr.map((r,i) => [i + 1, r.info.name, r.info.id ? '\t' + r.info.id : '', r.info.job, r.info.dept, r.tot.period, r.tot.work, r.tot.att, r.tot.ab, r.tot.inc, r.tot.fri, hm(r.tot.mins), hm(r.tot.ot), r.tot.late, r.tot.due, FLAG_TXT[r.flag]].map(q).join(',')));
+  const head = ['م','الاسم','رقم الهوية','المهنة','القسم','أيام الفترة','أيام العمل','حضور','غياب','ناقص بيانات','جمعة','إجمالي الساعات','الإضافي','التأخير بالدقائق','الإضافي يوم','أيام مستحقة','الحالة'];
+  const lines = [head.map(q).join(',')].concat(vr.map((r,i) => [i + 1, r.info.name, r.info.id ? '\t' + r.info.id : '', r.info.job, r.info.dept, r.tot.period, r.tot.work, r.tot.att, r.tot.ab, r.tot.inc, r.tot.fri, hm(r.tot.mins), hm(r.tot.ot), r.tot.late, r.tot.otDays, r.tot.due, FLAG_TXT[r.flag]].map(q).join(',')));
   const blob = new Blob(['﻿' + lines.join('\r\n')], {type:'text/csv;charset=utf-8'});
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
   a.download = `ملخص دوام ${cs.name} - ${MONTHS[p.m]} ${p.y}.csv`; document.body.appendChild(a); a.click(); a.remove();
